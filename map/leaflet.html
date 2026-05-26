@@ -15,8 +15,8 @@
 <div id="map"></div>
 <script>
     const map = L.map('map', {
-        center: [37.7749, -122.4194],
-        zoom: 12,
+        center: [9.145, 40.489],
+        zoom: 6,
         zoomControl: false,
         attributionControl: false,
     });
@@ -38,18 +38,17 @@
     let flightPathLayer = null;
 
     function updateVehiclePosition(lat, lon, heading) {
-        if (vehicleMarker) {
-            vehicleMarker.setLatLng([lat, lon]);
-        } else {
-            vehicleMarker = L.marker([lat, lon], {
-                icon: L.divIcon({
-                    html: '<div style="background:#4fc3f7;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 8px rgba(79,195,247,0.6);"></div>',
-                    iconSize: [20, 20],
-                    className: ''
-                })
-            }).addTo(map);
-            map.setView([lat, lon], 16);
-        }
+            if (vehicleMarker) {
+                vehicleMarker.setLatLng([lat, lon]);
+            } else {
+                vehicleMarker = L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        html: '<div style="background:#4fc3f7;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 8px rgba(79,195,247,0.6);"></div>',
+                        iconSize: [20, 20],
+                        className: ''
+                    })
+                }).addTo(map);
+            }
     }
 
     function drawWaypoints(waypoints) {

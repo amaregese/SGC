@@ -58,44 +58,19 @@ QToolBar#toolbar QToolButton {
     background-color: #2d6a4f;
 }
 
-#toolbar QPushButton#rtl_btn {
-    background-color: #7f4f24;
-    color: white;
+#toolbar_group {
+    background-color: #2a2a4a; color: #ccc;
+    border: none; border-radius: 4px;
+    padding: 4px 10px; font-size: 11px; font-weight: bold;
 }
 
-#toolbar QPushButton#rtl_btn:hover {
-    background-color: #a67c52;
-}
-
-#toolbar QPushButton#emergency_btn {
-    background-color: #6b0000;
-    color: white;
-    font-size: 16px;
-    padding: 4px;
-}
-
-#toolbar QPushButton#emergency_btn:hover {
-    background-color: #8b0000;
-}
-
-#toolbar QPushButton#set_mode_btn {
-    background-color: #3a3a5c;
-    padding: 6px 10px;
-}
-
-#toolbar QPushButton#params_btn {
-    background-color: #2a2a4a;
-    padding: 6px 10px;
-}
-
-#toolbar QPushButton#params_btn:checked {
-    background-color: #4fc3f7;
-    color: #1a1a2e;
-    font-weight: bold;
-}
-
-#toolbar QPushButton#params_btn:hover {
+#toolbar_group:hover {
     background-color: #3a3a6a;
+}
+
+#toolbar_group::menu-indicator {
+    image: none;
+    width: 0px;
 }
 
 #toolbar QPushButton#settings_btn {
@@ -117,15 +92,34 @@ QToolBar#toolbar QToolButton {
     padding: 0 8px;
 }
 
-#toolbar_sep {
-    color: #3a3a5c;
-    margin: 4px 2px;
+QMenu {
+    background-color: #1a1a2e;
+    color: #ccc;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 4px;
 }
 
-#mode_label {
-    color: #aaa;
+QMenu::item {
+    padding: 6px 24px 6px 12px;
     font-size: 11px;
-    padding: 0 4px;
+}
+
+QMenu::item:selected {
+    background-color: #0f3460;
+    color: #4fc3f7;
+}
+
+QMenu::item:checked {
+    background-color: #0f3460;
+    color: #4fc3f7;
+    font-weight: bold;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #333;
+    margin: 4px 8px;
 }
 
 #port_combo, #mode_combo {
@@ -141,15 +135,23 @@ QToolBar#toolbar QToolButton {
     background-color: #1a4a7a;
 }
 
-#telemetry_panel {
-    background-color: #16213e;
+#left_panel {
+    background-color: #0a0a1a;
     border-right: 1px solid #0f3460;
 }
 
-#telemetry_card {
-    background-color: #1a1a3e;
-    border: 1px solid #0f3460;
-    border-radius: 6px;
+#telemetry_panel {
+    background-color: #0a0a1a;
+    border-top: 1px solid #0f3460;
+}
+
+#mini_battery_bar {
+    background-color: #0f3460;
+    border: none;
+    border-radius: 2px;
+    text-align: center;
+    font-size: 7px;
+    color: white;
 }
 
 #card_header {
@@ -276,11 +278,6 @@ QToolBar#toolbar QToolButton {
     background-color: #1a4a7a;
 }
 
-#video_status {
-    color: #888;
-    padding: 0 4px;
-}
-
 QStatusBar {
     background-color: #0f3460;
     color: #ccc;
@@ -365,6 +362,133 @@ QStatusBar {
 }
 
 #mission_btn:hover {
+    background-color: #1a4a7a;
+}
+
+#actions_dock {
+    background-color: #16213e;
+}
+
+#actions_dock QPushButton#action_btn_warn {
+    background-color: #5c2a2a;
+    color: #ff6b6b;
+    border: 1px solid #8a3a3a;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+}
+
+#actions_dock QPushButton#action_btn_warn:hover {
+    background-color: #7a3a3a;
+}
+
+#actions_dock QPushButton#action_btn_cal {
+    background-color: #0f3460;
+    color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+}
+
+#actions_dock QPushButton#action_btn_cal:hover {
+    background-color: #1a4a7a;
+}
+
+#actions_dock QPushButton#action_btn_misc {
+    background-color: #2a4a2a;
+    color: #6bff6b;
+    border: 1px solid #3a6a3a;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+}
+
+#actions_dock QPushButton#action_btn_misc:hover {
+    background-color: #3a6a3a;
+}
+
+#joystick_dock {
+    background-color: #16213e;
+}
+
+#joystick_bar {
+    background-color: #1a1a3e;
+    border: 1px solid #0f3460;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 9px;
+    color: #888;
+    height: 14px;
+}
+
+#joystick_bar::chunk {
+    background-color: #4fc3f7;
+    border-radius: 2px;
+}
+
+#toolbar QPushButton#joystick_btn {
+    background-color: #2a2a4a;
+    padding: 6px 10px;
+}
+
+#toolbar QPushButton#joystick_btn:checked {
+    background-color: #4fc3f7;
+    color: #1a1a2e;
+    font-weight: bold;
+}
+
+#toolbar QPushButton#joystick_btn:hover {
+    background-color: #3a3a6a;
+}
+
+#toolbar QPushButton#console_btn {
+    background-color: #2a2a4a;
+    padding: 6px 10px;
+}
+
+#toolbar QPushButton#console_btn:checked {
+    background-color: #4fc3f7;
+    color: #1a1a2e;
+    font-weight: bold;
+}
+
+#toolbar QPushButton#console_btn:hover {
+    background-color: #3a3a6a;
+}
+
+#serial_console_dock {
+    background-color: #0d1117;
+}
+
+#serial_console_dock #console_output {
+    background-color: #0d1117;
+    color: #e0e0e0;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 6px;
+}
+
+#serial_console_dock #console_input {
+    background-color: #0f3460;
+    color: #e0e0e0;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+
+#serial_console_dock #console_send_btn {
+    background-color: #0f3460;
+    color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 11px;
+}
+
+#serial_console_dock #console_send_btn:hover {
     background-color: #1a4a7a;
 }
 """

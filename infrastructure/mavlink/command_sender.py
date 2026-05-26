@@ -43,6 +43,36 @@ class CommandSender:
     def set_servo(self, channel: int, pwm: int) -> None:
         self._send_command(183, float(channel), float(pwm))
 
+    def reboot(self) -> None:
+        self._send_command(246, 1.0)
+
+    def calibrate_gyro(self) -> None:
+        self._send_command(241, 1.0)
+
+    def calibrate_accel(self) -> None:
+        self._send_command(241, 6.0)
+
+    def calibrate_compass(self) -> None:
+        self._send_command(241, 7.0)
+
+    def calibrate_radio(self) -> None:
+        self._send_command(241, 5.0)
+
+    def set_home_here(self) -> None:
+        self._send_command(179, 1.0)
+
+    def send_rc_channels_override(self, channels: list[int]) -> None:
+        master = self._connection.master
+        if master is None:
+            return
+        sysid = master.target_system if master.target_system else 1
+        compid = master.target_component if master.target_component else 1
+        try:
+            padded = (channels + [0] * 18)[:18]
+            master.mav.rc_channels_override_send(sysid, compid, *padded)
+        except Exception:
+            pass
+
     @staticmethod
     def _get_mode_id(mode: str) -> int | None:
         modes = {

@@ -27,6 +27,12 @@ from ui.widgets.mission_panel import MissionPanel
 from infrastructure.mavlink.mission_client import MissionClient
 from ui.widgets.firmware_flash_dialog import FirmwareFlashDialog
 from ui.widgets.tuning_panel import TuningPanel
+from ui.widgets.action_panel import ActionsPanel
+from ui.widgets.joystick_panel import JoystickPanel
+from infrastructure.input.joystick_manager import JoystickManager
+from ui.widgets.hud import HUDWidget
+from ui.widgets.serial_console import SerialConsolePanel
+from infrastructure.mavlink.serial_console import SerialConsoleManager
 
 
 class _TelemetryBridge(QObject):
@@ -134,28 +140,43 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        self._hud = HUDWidget()
+        self._map_widget = MapWidget()
+
+        right_splitter = QSplitter(Qt.Vertical)
+        right_splitter.addWidget(self._map_widget)
+        right_splitter.setStretchFactor(0, 1)
+
+        left_splitter = QSplitter(Qt.Vertical)
+        left_splitter.addWidget(self._hud)
+        self._telemetry_panel = TelemetryPanel()
+        left_splitter.addWidget(self._telemetry_panel)
+        left_splitter.setStretchFactor(0, 1)
+        left_splitter.setStretchFactor(1, 1)
+
         content = QWidget()
         content_layout = QHBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
-
-        self._map_widget = MapWidget()
-
-        self._video_stream = VideoStream()
-        self._video_stream.setFixedHeight(200)
-
-        left_splitter = QSplitter(Qt.Vertical)
-        left_splitter.addWidget(self._map_widget)
-        left_splitter.addWidget(self._video_stream)
-        left_splitter.setStretchFactor(0, 3)
-        left_splitter.setStretchFactor(1, 1)
-
-        self._telemetry_panel = TelemetryPanel()
-
-        content_layout.addWidget(self._telemetry_panel)
-        content_layout.addWidget(left_splitter, 1)
+        content_layout.addWidget(left_splitter, 30)
+        content_layout.addWidget(right_splitter, 70)
 
         main_layout.addWidget(content)
+
+        # ── Camera / Video Dock ──
+        self._video_stream = VideoStream()
+        self._video_dock = QDockWidget("Camera", self)
+        self._video_dock.setObjectName("video_dock")
+        self._video_dock.setWidget(self._video_stream)
+        self._video_dock.setAllowedAreas(
+            Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea | Qt.BottomDockWidgetArea
+        )
+        self._video_dock.setFeatures(
+            QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable
+        )
+        self._video_dock.setMinimumSize(320, 240)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._video_dock)
+        self._video_dock.hide()
 
         self._toolbar.connect_requested.connect(self._on_connect)
         self._toolbar.disconnect_requested.connect(self._on_disconnect)
@@ -190,6 +211,8 @@ class MainWindow(QMainWindow):
         self._console_dock.hide()
         self.addDockWidget(Qt.BottomDockWidgetArea, self._console_dock)
         self._toolbar.messages_toggled.connect(self._console_dock.setVisible)
+        self._console_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("messages", v))
 
         self._mission_panel = MissionPanel()
         self._mission_dock = QDockWidget("Missions", self)
@@ -199,6 +222,8 @@ class MainWindow(QMainWindow):
         self._mission_dock.hide()
         self.addDockWidget(Qt.RightDockWidgetArea, self._mission_dock)
         self._toolbar.missions_toggled.connect(self._mission_dock.setVisible)
+        self._mission_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("missions", v))
 
         self._tuning_panel = TuningPanel()
         self._tuning_dock = QDockWidget("Basic Tuning", self)
@@ -209,6 +234,49 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self._tuning_dock)
         self._toolbar.tuning_toggled.connect(self._tuning_dock.setVisible)
         self._tuning_dock.visibilityChanged.connect(self._on_tuning_dock_visibility)
+
+        self._actions_panel = ActionsPanel()
+        self._actions_dock = QDockWidget("Actions", self)
+        self._actions_dock.setObjectName("actions_dock")
+        self._actions_dock.setWidget(self._actions_panel)
+        self._actions_dock.setFeatures(QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetMovable)
+        self._actions_dock.hide()
+        self.addDockWidget(Qt.RightDockWidgetArea, self._actions_dock)
+        self._toolbar.actions_toggled.connect(self._actions_dock.setVisible)
+        self._actions_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("actions", v))
+
+        self._joystick_manager = JoystickManager()
+        self._joystick_panel = JoystickPanel()
+        self._joystick_dock = QDockWidget("Joystick", self)
+        self._joystick_dock.setObjectName("joystick_dock")
+        self._joystick_dock.setWidget(self._joystick_panel)
+        self._joystick_dock.setFeatures(QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetMovable)
+        self._joystick_dock.hide()
+        self.addDockWidget(Qt.RightDockWidgetArea, self._joystick_dock)
+        self._toolbar.joystick_toggled.connect(self._joystick_dock.setVisible)
+        self._joystick_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("joystick", v))
+        self._joystick_manager.state_changed.connect(self._joystick_panel.update_state)
+        self._joystick_panel.rc_override_requested.connect(self._on_rc_override)
+        self._joystick_manager.start()
+
+        self._serial_console = SerialConsolePanel()
+        self._serial_console_mgr = SerialConsoleManager()
+        self._serial_console_dock = QDockWidget("Console", self)
+        self._serial_console_dock.setObjectName("serial_console_dock")
+        self._serial_console_dock.setWidget(self._serial_console)
+        self._serial_console_dock.setFeatures(QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetMovable)
+        self._serial_console_dock.hide()
+        self.addDockWidget(Qt.BottomDockWidgetArea, self._serial_console_dock)
+        self._toolbar.console_toggled.connect(self._serial_console_dock.setVisible)
+        self._serial_console_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("console", v))
+        self._toolbar.camera_toggled.connect(self._video_dock.setVisible)
+        self._video_dock.visibilityChanged.connect(
+            lambda v: self._toolbar.set_panel_checked("camera", v))
+        self._serial_console.send_requested.connect(self._on_console_send)
+        self._serial_console_mgr.data_received.connect(self._serial_console.append_received)
 
     def _get_serial_port(self) -> str | None:
         port = None
@@ -257,6 +325,7 @@ class MainWindow(QMainWindow):
         if self._worker and self._worker.isRunning():
             self._worker.quit()
             self._worker.wait(2000)
+        self._joystick_manager.stop()
         event.accept()
 
     def _on_connect(self):
@@ -286,6 +355,10 @@ class MainWindow(QMainWindow):
         self._console_bridge.message_received.connect(self._message_console.append_message)
         self._mavlink_connection.register_callback(self._console_bridge.process)
         self._message_console.append_message("GCS", "Connected to FCU", 6)
+
+        self._serial_console_mgr.set_connection(self._mavlink_connection)
+        self._serial_console_mgr.start()
+        self._mavlink_connection.register_callback(self._serial_console_mgr.process)
 
         self._tlog_writer = TLogWriter()
         path = self._tlog_writer.start()
@@ -317,6 +390,8 @@ class MainWindow(QMainWindow):
         self._tuning_panel.param_changed.connect(self._on_param_set)
         self._tuning_panel.request_refresh.connect(self._on_tuning_refresh)
         self._tuning_panel.servo_output_requested.connect(self._on_servo_output)
+
+        self._actions_panel.action_requested.connect(self._on_action)
         self._vehicle_type_set = False
 
     def _on_connection_failed(self, error: str):
@@ -348,39 +423,92 @@ class MainWindow(QMainWindow):
     def _on_param_batch(self, batch: list) -> None:
         for name, value, ptype, index, count in batch:
             self._param_panel.add_param(name, value, ptype)
-            self._tuning_panel.update_param(name, value)
+            self._tuning_panel.update_param_value(name, value)
+
+    def _detect_vehicle_from_params(self, params: dict) -> str | int | None:
+        names = set(params.keys())
+        if "SERVO9_FUNCTION" in names and "SERVO10_FUNCTION" in names:
+            return "Antenna Tracker", 6
+        if "RATE_ROLL_P" in names or "RATE_PITCH_P" in names:
+            return "Quadrotor", 2
+        if "RLL_RATE_P" in names or "PTCH_RATE_P" in names:
+            return "Fixed Wing", 1
+        return None
 
     def _on_param_sync_finished(self) -> None:
         self._param_panel.sync_finished()
-        self.statusBar().showMessage(f"Loaded {self._param_client.param_count} parameters", 3000)
+        count = self._param_client.param_count
+        all_params = self._param_client.all_params
+
+        detected = self._detect_vehicle_from_params(all_params)
+        if detected:
+            vtype, mtype = detected
+            if not self._vehicle_type_set or vtype != self._tuning_panel.vehicle_label:
+                self._vehicle_type_set = True
+                self._tuning_panel.set_preset(vtype, mtype)
+                self.statusBar().showMessage(
+                    f"Detected: {vtype} (from params)", 5000
+                )
+                self._message_console.append_message(
+                    "GCS", f"Detected vehicle: {vtype} (from params)", 5
+                )
+
+        if self._tuning_panel.isVisible():
+            self._tuning_panel.populate_params(all_params)
+        self.statusBar().showMessage(f"Loaded {count} parameters\u2014tuning ready", 3000)
 
     def _on_param_refresh(self) -> None:
         self._param_panel.sync_started()
         self._param_client.request_list()
 
     def _on_param_dock_visibility(self, visible: bool) -> None:
+        self._toolbar.set_panel_checked("params", visible)
         if visible and self._param_client and self._param_client.param_count == 0:
             self._param_panel.sync_started()
             self._param_client.request_list()
 
     def _on_tuning_dock_visibility(self, visible: bool) -> None:
-        if visible and self._param_client and self._param_client.param_count > 0:
-            self._on_tuning_refresh()
+        self._toolbar.set_panel_checked("tuning", visible)
+        if visible and self._param_client:
+            if self._param_client.param_count > 0:
+                self._tuning_panel.populate_params(self._param_client.all_params)
+            else:
+                self._on_tuning_refresh()
 
     def _on_tuning_refresh(self) -> None:
-        self._tuning_panel.clear_graph()
         if not self._param_client:
             return
-        for pname in self._tuning_panel.slider_names:
-            pinfo = self._param_client.get_param(pname)
-            if pinfo is not None:
-                value, ptype = pinfo
-                self._tuning_panel.update_param(pname, value)
+        self._tuning_panel.clear_graph()
+        self._param_panel.sync_started()
+        self._param_client.request_list()
 
     def _on_param_set(self, name: str, value: float, ptype: int) -> None:
         if self._param_client:
             self._param_client.set_param(name, value, ptype)
             self.statusBar().showMessage(f"Set {name} = {value}", 3000)
+
+    def _on_rc_override(self, channels: list[int]) -> None:
+        if self._command_sender:
+            self._command_sender.send_rc_channels_override(channels)
+
+    def _on_console_send(self, text: str) -> None:
+        self._serial_console_mgr.send(text)
+
+    def _on_action(self, action: str) -> None:
+        cmd = {
+            "Reboot": lambda: self._command_sender.reboot(),
+            "Reboot to Bootloader": lambda: self._command_sender.reboot_to_bootloader(),
+            "Calibrate Gyro": lambda: self._command_sender.calibrate_gyro(),
+            "Calibrate Accel": lambda: self._command_sender.calibrate_accel(),
+            "Calibrate Compass": lambda: self._command_sender.calibrate_compass(),
+            "Calibrate Radio": lambda: self._command_sender.calibrate_radio(),
+            "Set Home Here": lambda: self._command_sender.set_home_here(),
+        }
+        fn = cmd.get(action)
+        if fn:
+            fn()
+            self._message_console.append_message("GCS", f"{action} command sent", 5)
+            self.statusBar().showMessage(f"{action} sent", 3000)
 
     def _on_vehicle_updated(self, vehicle):
         if not self._connected:
@@ -396,12 +524,16 @@ class MainWindow(QMainWindow):
             )
         if not self._vehicle_type_set and vehicle.vehicle_type_str:
             self._vehicle_type_set = True
-            self._tuning_panel.set_preset(vehicle.vehicle_type_str)
+            self._tuning_panel.set_preset(vehicle.vehicle_type_str, vehicle.vehicle_type)
             self.statusBar().showMessage(
-                f"Detected: {vehicle.vehicle_type_str}", 3000
+                f"Detected: {vehicle.vehicle_type_str} (MAV_TYPE {vehicle.vehicle_type})", 5000
             )
-        self._telemetry_panel.update_from_vehicle(vehicle)
-        self._telemetry_panel.set_link_quality(True)
+            self._message_console.append_message(
+                "GCS",
+                f"Detected vehicle: {vehicle.vehicle_type_str} (MAV_TYPE={vehicle.vehicle_type})",
+                5,
+            )
+
         self._status_bar.update_from_vehicle(vehicle)
         self._toolbar.set_armed(vehicle.armed)
         self._toolbar.set_mode(vehicle.mode)
@@ -413,6 +545,15 @@ class MainWindow(QMainWindow):
         self._map_widget.update_stats(
             vehicle.groundspeed, vehicle.position.alt, vehicle.heading,
         )
+        self._hud.update_data(
+            vehicle.attitude.roll,
+            vehicle.attitude.pitch,
+            vehicle.heading,
+            vehicle.position.alt,
+            vehicle.groundspeed,
+        )
+        self._telemetry_panel.update_from_vehicle(vehicle)
+        self._telemetry_panel.set_link_quality(True)
         self._tuning_panel.add_attitude(
             vehicle.attitude.roll,
             vehicle.attitude.pitch,
@@ -448,6 +589,10 @@ class MainWindow(QMainWindow):
         self._param_dock.hide()
         self._tuning_dock.hide()
         self._tuning_panel.clear_graph()
+        self._actions_dock.hide()
+        self._serial_console_dock.hide()
+        self._serial_console_mgr.stop()
+        self._joystick_dock.hide()
         self._vehicle_type_set = False
         self._flight_path.clear()
         self._flight_path_counter = 0
