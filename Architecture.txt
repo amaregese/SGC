@@ -1,0 +1,160 @@
+🏗️ SGC Architecture (Professional Level)
+🔷 1. High-Level Architecture
+SGC (Main App)
+│
+├── Presentation Layer (UI - PySide6)
+├── Application Layer (Controllers / Use Cases)
+├── Domain Layer (Core Logic / Models)
+├── Infrastructure Layer (MAVLink, IO, Networking)
+└── Plugin System (Extensions)
+🎨 2. Presentation Layer (UI)
+
+Tech: PySide6 (Qt for Python)
+
+Responsibilities:
+
+Dashboard (HUD, telemetry)
+Map view
+Mission planner UI
+Settings panel
+
+Structure:
+
+ui/
+├── main_window.py
+├── widgets/
+│   ├── map_widget.py
+│   ├── telemetry_panel.py
+│   ├── control_panel.py
+│   └── video_stream.py
+
+👉 Keep UI dumb → no heavy logic inside
+
+⚙️ 3. Application Layer (Brain)
+
+This is where your system becomes powerful.
+
+Responsibilities:
+
+Command handling (arm, takeoff, RTL)
+Mission upload/download
+State coordination
+application/
+├── controllers/
+│   ├── vehicle_controller.py
+│   ├── mission_controller.py
+│   └── camera_controller.py
+
+👉 Think of this as your “mini backend inside the app”
+
+🧩 4. Domain Layer (Core Logic)
+
+Pure logic—no UI, no hardware.
+
+domain/
+├── models/
+│   ├── vehicle.py
+│   ├── mission.py
+│   └── waypoint.py
+├── services/
+│   ├── telemetry_processor.py
+│   └── flight_logic.py
+
+👉 This layer makes your app:
+
+Testable
+Reusable
+Clean
+🔌 5. Infrastructure Layer (Hardware & MAVLink)
+
+This is the critical layer.
+
+Tech:
+
+pymavlink (low-level control)
+optionally dronekit
+infrastructure/
+├── mavlink/
+│   ├── mavlink_connection.py
+│   ├── message_handler.py
+│   └── command_sender.py
+├── video/
+│   └── stream_handler.py
+├── storage/
+│   └── log_manager.py
+
+👉 Handles:
+
+Serial / UDP connection
+MAVLink parsing
+Data streaming
+🔁 6. Data Flow (VERY IMPORTANT)
+Pixhawk → MAVLink → Infrastructure → Domain → Application → UI
+                                                       ↓
+Pixhawk ← MAVLink ← Infrastructure ← Application ← UI Actions
+
+👉 Never let UI talk directly to MAVLink
+
+🧩 7. Plugin System (Advanced & Powerful)
+
+This is what makes your SGC next-level.
+
+plugins/
+├── ai_tracking/
+├── custom_missions/
+└── swarm_control/
+
+Each plugin:
+
+Runs independently
+Hooks into telemetry + commands
+
+👉 This is where your AI drone features live
+
+⚡ 8. Performance Strategy (Python limitation handling)
+
+Python is slower than C++, so:
+
+Use:
+Threads (QThread) → telemetry + UI separation
+Async IO → MAVLink streaming
+Multiprocessing → AI / video processing
+
+Example split:
+
+Main UI Thread
+Telemetry Thread
+Video Processing Process
+AI Detection Process (YOLO)
+🗺️ 9. Map System
+
+Use:
+
+Qt WebEngine + Leaflet.js
+map/
+├── map_bridge.py
+├── leaflet.html
+
+👉 Communicate via JS ↔ Python bridge
+
+🎥 10. Video + AI Integration
+
+Future-ready design:
+
+video_pipeline/
+├── capture → decode → AI → overlay → UI
+
+Use:
+
+OpenCV
+GStreamer (for performance)
+🧱 11. Suggested Folder Structure
+sgc/
+├── main.py
+├── ui/
+├── application/
+├── domain/
+├── infrastructure/
+├── plugins/
+├── assets/
+└── config/
